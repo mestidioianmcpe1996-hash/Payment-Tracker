@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Group Payment Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app" id="app">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                📋 Payment Tracker
+                
+            </h1>
+            <div class="header-actions">
+                <button class="primary" id="addMemberBtn">＋ Add Member</button>
+                <button class="primary" id="addWeekBtn">＋ Add Week</button>
+                <button class="save-btn" id="saveBtn">💾 Save Data</button>
+                <button id="resetBtn" class="danger">↺ Reset All</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="statsBar">
+            <div class="stats-item">
+                👥 Members: <strong id="memberCount">0</strong>
+            </div>
+            <div class="stats-item">
+                📅 Weeks: <strong id="weekCount">0</strong>
+            </div>
+            <div class="stats-item">
+                ✅ Total Paid: <strong class="num" id="totalPaidCount">0</strong>
+            </div>
+            <div class="stats-item">
+                💰 Collection Rate: <strong class="num green" id="collectionRate">0%</strong>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+            <table id="paymentTable">
+                <thead id="tableHead">
+                    <!-- dynamically built -->
+                </thead>
+                <tbody id="tableBody">
+                    <!-- dynamically built -->
+                </tbody>
+                <tfoot id="tableFoot">
+                    <!-- dynamically built -->
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Empty state (hidden by default) -->
+        <div id="emptyState" class="empty-msg" style="display:none;">
+            <div class="big">📭</div>
+            <p>No members or weeks yet.<br />Start by adding a member or a week above.</p>
+        </div>
+    </div>
+
+    <!-- ─── Modal ─── -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <h3 id="modalTitle">Add Member</h3>
+            <p id="modalDesc">Enter the name of the group member.</p>
+            <input type="text" id="modalInput" placeholder="e.g. John Doe" />
+            <div class="modal-actions">
+                <button class="cancel" id="modalCancel">Cancel</button>
+                <button class="confirm" id="modalConfirm">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Toast ─── -->
+    <div id="toast" class="toast">✅ Data saved!</div>
+
+    <script>
+        // ─────────────────────────────────────────────────────────────
+        //  DATA
+        // ─────────────────────────────────────────────────────────────
+
+        const STORAGE_KEY = 'paymentTrackerData';
+
+        // Default: 3 members, 4 weeks
+        const DEFAULT_DATA = {
+            members: ['Alice', 'Bob', 'Carol'],
+            weeks: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+            // payments: { memberName: { weekIndex: true/false } }
+            payments: {}
+        };
+
+        let data = loadData();
+
+        // ─────────────────────────────────────────────────────────────
+        //  STORAGE
+        // ─────────────────────────────────────────────────────────────
+
+        function loadData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    // ensure payments object exists
+                    if (!parsed.payments) parsed.payments = {};
+                    return parsed;
+                }
+            } catch (_) { /* ignore */ }
+            // seed default payments
+            const def = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            def.payments = {};
+            def.members.forEach(m => {
+                def.payments[m] = {};
+                def.weeks.forEach((_, wi) => {
+                    def.payments[m][wi] = false;
+                });
+            });
+            return def;
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            showToast('✅ Data saved!');
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  TOAST
+        // ─────────────────────────────────────────────────────────────
+
+        let toastTimeout = null;
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message || '✅ Data saved!';
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000);
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  HELPERS
+        // ─────────────────────────────────────────────────────────────
+
+        function ensurePaymentEntry(member) {
+            if (!data.payments[member]) {
+                data.payments[member] = {};
+            }
+            data.weeks.forEach((_, wi) => {
+                if (!(wi in data.payments[member])) {
+                    data.payments[member][wi] = false;
+                }
+            });
+        }
+
+        function getPaid(member, weekIdx) {
+            ensurePaymentEntry(member);
+            return !!data.payments[member][weekIdx];
+        }
+
+        function setPaid(member, weekIdx, value) {
+            ensurePaymentEntry(member);
+            data.payments[member][weekIdx] = !!value;
+            saveData(); // auto-save on change
+            render();
+        }
+
+        function togglePaid(member, weekIdx) {
+            setPaid(member, weekIdx, !getPaid(member, weekIdx));
+        }
+
+        function getTotalPaidForMember(member) {
+            ensurePaymentEntry(member);
+            let count = 0;
+            data.weeks.forEach((_, wi) => {
+                if (data.payments[member][wi]) count++;
+            });
+            return count;
+        }
+
+        function getTotalPaidForWeek(weekIdx) {
+            let count = 0;
+            data.members.forEach(m => {
+                if (getPaid(m, weekIdx)) count++;
+            });
+            return count;
+        }
+
+        function getTotalPaidOverall() {
+            let count = 0;
+            data.members.forEach(m => {
+                count += getTotalPaidForMember(m);
+            });
+            return count;
+        }
+
+        function getCollectionRate() {
+            const total = data.members.length * data.weeks.length;
+            if (total === 0) return 0;
+            return Math.round((getTotalPaidOverall() / total) * 100);
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  RENDER
+        // ─────────────────────────────────────────────────────────────
+
+        function render() {
+            const head = document.getElementById('tableHead');
+            const body = document.getElementById('tableBody');
+            const foot = document.getElementById('tableFoot');
+            const empty = document.getElementById('emptyState');
+            const table = document.getElementById('paymentTable');
+
+            // update stats
+            document.getElementById('memberCount').textContent = data.members.length;
+            document.getElementById('weekCount').textContent = data.weeks.length;
+            document.getElementById('totalPaidCount').textContent = getTotalPaidOverall();
+            document.getElementById('collectionRate').textContent = getCollectionRate() + '%';
+
+            // if empty
+            if (data.members.length === 0 || data.weeks.length === 0) {
+                table.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            table.style.display = '';
+            empty.style.display = 'none';
+
+            // ── Head ──
+            let theadHtml = '<tr><th>Member</th>';
+            data.weeks.forEach((weekLabel, wi) => {
+                theadHtml += `
+                        <th>
+                            <div class="week-label">
+                                <span>${escapeHtml(weekLabel)}</span>
+                                <button class="del-week" data-week="${wi}" title="Delete week">✕</button>
+                            </div>
+                        </th>
+                    `;
+            });
+            theadHtml += '<th>Total</th></tr>';
+            head.innerHTML = theadHtml;
+
+            // ── Body ──
+            let tbodyHtml = '';
+            data.members.forEach(member => {
+                tbodyHtml += `<tr><td>
+                        <span class="member-name">${escapeHtml(member)}</span>
+                        <button class="del-member" data-member="${escapeHtml(member)}" title="Delete member">✕</button>
+                    </td>`;
+                let memberTotal = 0;
+                data.weeks.forEach((_, wi) => {
+                    const paid = getPaid(member, wi);
+                    if (paid) memberTotal++;
+                    const icon = paid ? '✅' : '⬜';
+                    tbodyHtml += `
+                            <td>
+                                <div class="pay-cell ${paid ? 'paid' : ''}" 
+                                     data-member="${escapeHtml(member)}" 
+                                     data-week="${wi}"
+                                     title="${paid ? 'Mark as unpaid' : 'Mark as paid'}">
+                                    <span class="icon">${icon}</span>
+                                </div>
+                            </td>
+                        `;
+                });
+                tbodyHtml += `<td class="total-col">${memberTotal}</td></tr>`;
+            });
+            body.innerHTML = tbodyHtml;
+
+            // ── Foot (totals per week) ──
+            let tfootHtml = `<tr class="total-row"><td>Total</td>`;
+            let grandTotal = 0;
+            data.weeks.forEach((_, wi) => {
+                const count = getTotalPaidForWeek(wi);
+                grandTotal += count;
+                const isFull = count === data.members.length;
+                tfootHtml += `
+                        <td>
+                            <div class="pay-cell ${count > 0 ? 'paid-total' : ''}" style="cursor:default;">
+                                ${count} / ${data.members.length}
+                            </div>
+                        </td>
+                    `;
+            });
+            tfootHtml += `<td class="total-col">${grandTotal}</td></tr>`;
+            foot.innerHTML = tfootHtml;
+
+            // ── Event Listeners (delegated) ──
+
+            // Click on pay-cell: toggle
+            body.querySelectorAll('.pay-cell').forEach(cell => {
+                cell.removeEventListener('click', handleCellClick);
+                cell.addEventListener('click', handleCellClick);
+            });
+
+            // Delete member
+            body.querySelectorAll('.del-member').forEach(btn => {
+                btn.removeEventListener('click', handleDeleteMember);
+                btn.addEventListener('click', handleDeleteMember);
+            });
+
+            // Delete week
+            head.querySelectorAll('.del-week').forEach(btn => {
+                btn.removeEventListener('click', handleDeleteWeek);
+                btn.addEventListener('click', handleDeleteWeek);
+            });
+        }
+
+        // ── Event handlers ──
+        function handleCellClick(e) {
+            const cell = e.currentTarget;
+            const member = cell.dataset.member;
+            const week = parseInt(cell.dataset.week, 10);
+            if (member && !isNaN(week)) {
+                togglePaid(member, week);
+            }
+        }
+
+        function handleDeleteMember(e) {
+            e.stopPropagation();
+            const member = e.currentTarget.dataset.member;
+            if (!member) return;
+            if (confirm(`Remove "${member}" from the group?`)) {
+                delete data.payments[member];
+                data.members = data.members.filter(m => m !== member);
+                saveData();
+                render();
+            }
+        }
+
+        function handleDeleteWeek(e) {
+            e.stopPropagation();
+            const weekIdx = parseInt(e.currentTarget.dataset.week, 10);
+            if (isNaN(weekIdx)) return;
+            const label = data.weeks[weekIdx];
+            if (confirm(`Delete "${label}"? All payment data for this week will be lost.`)) {
+                // remove week from array
+                data.weeks.splice(weekIdx, 1);
+                // remove this week index from all members' payments, and shift indices
+                for (const member of data.members) {
+                    if (data.payments[member]) {
+                        const newPay = {};
+                        let newIdx = 0;
+                        for (let wi = 0; wi < data.weeks.length + 1; wi++) {
+                            if (wi === weekIdx) continue;
+                            if (wi in data.payments[member]) {
+                                newPay[newIdx] = data.payments[member][wi];
+                            }
+                            newIdx++;
+                        }
+                        data.payments[member] = newPay;
+                    }
+                }
+                saveData();
+                render();
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  MODAL
+        // ─────────────────────────────────────────────────────────────
+
+        let modalResolve = null;
+        const overlay = document.getElementById('modalOverlay');
+        const modalInput = document.getElementById('modalInput');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalDesc = document.getElementById('modalDesc');
+        const modalConfirm = document.getElementById('modalConfirm');
+        const modalCancel = document.getElementById('modalCancel');
+
+        function openModal(title, desc, placeholder, confirmLabel) {
+            return new Promise((resolve) => {
+                modalTitle.textContent = title;
+                modalDesc.textContent = desc;
+                modalInput.placeholder = placeholder || 'Enter value…';
+                modalConfirm.textContent = confirmLabel || 'Add';
+                modalInput.value = '';
+                overlay.classList.add('open');
+                modalInput.focus();
+                modalResolve = resolve;
+            });
+        }
+
+        function closeModal(value) {
+            overlay.classList.remove('open');
+            if (modalResolve) {
+                modalResolve(value);
+                modalResolve = null;
+            }
+        }
+
+        modalConfirm.addEventListener('click', () => {
+            const val = modalInput.value.trim();
+            if (val) {
+                closeModal(val);
+            } else {
+                modalInput.focus();
+                modalInput.style.borderColor = '#b91c1c';
+                setTimeout(() => { modalInput.style.borderColor = ''; }, 600);
+            }
+        });
+
+        modalCancel.addEventListener('click', () => closeModal(null));
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeModal(null);
+        });
+        modalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') modalConfirm.click();
+            if (e.key === 'Escape') closeModal(null);
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        //  ACTIONS
+        // ─────────────────────────────────────────────────────────────
+
+        document.getElementById('addMemberBtn').addEventListener('click', async () => {
+            const name = await openModal('Add Member', 'Enter the name of the new group member.', 'e.g. Diana', 'Add');
+            if (name) {
+                if (data.members.includes(name)) {
+                    alert(`"${name}" already exists.`);
+                    return;
+                }
+                data.members.push(name);
+                data.payments[name] = {};
+                data.weeks.forEach((_, wi) => {
+                    data.payments[name][wi] = false;
+                });
+                saveData();
+                render();
+            }
+        });
+
+        document.getElementById('addWeekBtn').addEventListener('click', async () => {
+            const label = await openModal('Add Week', 'Enter a label for the new week.', 'e.g. Week 5', 'Add');
+            if (label) {
+                if (data.weeks.includes(label)) {
+                    alert(`"${label}" already exists.`);
+                    return;
+                }
+                const newIdx = data.weeks.length;
+                data.weeks.push(label);
+                for (const member of data.members) {
+                    if (!data.payments[member]) data.payments[member] = {};
+                    data.payments[member][newIdx] = false;
+                }
+                saveData();
+                render();
+            }
+        });
+
+        // ── Save button ──
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            saveData();
+            // Show toast is already called inside saveData()
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            if (confirm('Reset all data to the default members and weeks? This cannot be undone.')) {
+                const def = JSON.parse(JSON.stringify(DEFAULT_DATA));
+                def.payments = {};
+                def.members.forEach(m => {
+                    def.payments[m] = {};
+                    def.weeks.forEach((_, wi) => {
+                        def.payments[m][wi] = false;
+                    });
+                });
+                data = def;
+                saveData();
+                render();
+            }
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        //  SAVE ON TAB CLOSE (extra safety)
+        // ─────────────────────────────────────────────────────────────
+
+        window.addEventListener('beforeunload', () => {
+            // data is already saved on every change, but we save again just in case
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        //  UTILITY
+        // ─────────────────────────────────────────────────────────────
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  INIT
+        // ─────────────────────────────────────────────────────────────
+
+        render();
+
+        // if no data at all, seed defaults
+        if (data.members.length === 0 && data.weeks.length === 0) {
+            const def = JSON.parse(JSON.stringify(DEFAULT_DATA));
+            def.payments = {};
+            def.members.forEach(m => {
+                def.payments[m] = {};
+                def.weeks.forEach((_, wi) => {
+                    def.payments[m][wi] = false;
+                });
+            });
+            data = def;
+            saveData();
+            render();
+        }
+
+        console.log('📋 Payment Tracker ready! (auto-save + manual save button)');
+    </script>
+
+</body>
+</html>
