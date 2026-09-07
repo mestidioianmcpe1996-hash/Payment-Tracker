@@ -37,6 +37,9 @@
             <div class="stats-item">
                 💰 Collection Rate: <strong class="num green" id="collectionRate">0%</strong>
             </div>
+             <div class="stats-item">
+                💰 Amount Collected: <strong class="num green" id="totalAmount">0</strong>
+            </div>
         </div>
 
         <!-- Table -->
@@ -202,6 +205,10 @@
             if (total === 0) return 0;
             return Math.round((getTotalPaidOverall() / total) * 100);
         }
+        function getTotalAmount(){
+            const totalAmount = getTotalPaidOverall() * 50;
+            return totalAmount;
+        }
 
         // ─────────────────────────────────────────────────────────────
         //  RENDER
@@ -219,7 +226,7 @@
             document.getElementById('weekCount').textContent = data.weeks.length;
             document.getElementById('totalPaidCount').textContent = getTotalPaidOverall();
             document.getElementById('collectionRate').textContent = getCollectionRate() + '%';
-
+            document.getElementById('totalAmount').textContent = getTotalAmount();  
             // if empty
             if (data.members.length === 0 || data.weeks.length === 0) {
                 table.style.display = 'none';
