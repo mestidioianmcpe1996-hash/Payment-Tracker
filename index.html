@@ -247,10 +247,12 @@
             // ── Body ──
             let tbodyHtml = '';
             data.members.forEach(member => {
-                tbodyHtml += `<tr><td>
-                        <span class="member-name">${escapeHtml(member)}</span>
-                        <button class="del-member" data-member="${escapeHtml(member)}" title="Delete member">✕</button>
-                    </td>`;
+               tbodyHtml += `<tr><td>
+        <div class="member-cell">
+            <span class="member-name">${escapeHtml(member)}</span>
+            <button class="del-member" data-member="${escapeHtml(member)}" title="Delete member">✕</button>
+        </div>
+    </td>`;
                 let memberTotal = 0;
                 data.weeks.forEach((_, wi) => {
                     const paid = getPaid(member, wi);

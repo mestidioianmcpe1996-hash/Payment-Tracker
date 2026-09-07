@@ -182,7 +182,7 @@ th {
     color: #6b2e4a;
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: 3;
 }
 
 th .week-label {
@@ -208,30 +208,52 @@ th .week-label .del-week:hover {
     background: #fce4ec;
 }
 
-td:first-child,
+/* ── Sticky First Column (Name) ── */
 th:first-child {
-    padding-left: 1.2rem;
+    position: sticky;
+    left: 0;
+    z-index: 4; /* above header and body */
+    background-color: #fce8ef;
+    border-right: 2px solid #f8d7e0;
+    min-width: 160px;
     text-align: left;
-    font-weight: 600;
-    color: #4a2c3a;
+    padding-left: 1.2rem;
 }
 
 td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background-color: #ffffff; /* solid to cover scrolling content */
+    border-right: 2px solid #f8d7e0;
+    min-width: 160px;
+    text-align: left;
+    padding-left: 1.2rem;
+    /* Remove flex from the td itself, use inner div */
+    display: table-cell;
+    vertical-align: middle;
+}
+
+/* Inner container for name + delete button */
+.member-cell {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
-    background: #fff;
-    border-right: 1px solid #fce4ec;
+    width: 100%;
 }
 
-td:first-child .member-name {
+.member-name {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    color: #4a2c3a;
 }
 
-td:first-child .del-member {
+.del-member {
+    flex-shrink: 0; /* prevent shrink */
     background: none;
     border: none;
     color: #b06a82;
@@ -240,15 +262,14 @@ td:first-child .del-member {
     padding: 0 0.2rem;
     border-radius: 4px;
     transition: 0.1s;
-    flex-shrink: 0;
 }
 
-td:first-child .del-member:hover {
+.del-member:hover {
     color: #b71c1c;
     background: #fce4ec;
 }
 
-/* ── Payment Cell ── */
+/* ── Payment Cells ── */
 .pay-cell {
     cursor: pointer;
     border-radius: 8px;
@@ -508,8 +529,9 @@ td:first-child .del-member:hover {
         padding: 0.5rem 0.5rem;
         font-size: 0.8rem;
     }
-    td:first-child,
-    th:first-child {
+    th:first-child,
+    td:first-child {
+        min-width: 120px;
         padding-left: 0.7rem;
     }
     .pay-cell {
@@ -540,7 +562,9 @@ td:first-child .del-member:hover {
         flex-direction: column;
         gap: 0.1rem;
     }
+    th:first-child,
     td:first-child {
+        min-width: 100px;
         font-size: 0.75rem;
     }
 }
