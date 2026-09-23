@@ -13,7 +13,6 @@
         <div class="header">
             <h1>
                 📋 Payment Tracker
-                
             </h1>
             <div class="header-actions">
                 <button class="primary" id="addMemberBtn">＋ Add Member</button>
@@ -37,8 +36,14 @@
             <div class="stats-item">
                 💰 Collection Rate: <strong class="num green" id="collectionRate">0%</strong>
             </div>
-             <div class="stats-item">
+            <div class="stats-item">
                 💰 Amount Collected: <strong class="num green" id="totalAmount">0</strong>
+            </div>
+            <div class="stats-item">
+                💸 Total Expenses: <strong class="num red" id="totalExpenses">0</strong>
+            </div>
+            <div class="stats-item">
+                💵 Remaining Balance: <strong class="num green" id="remainingBalance">0</strong>
             </div>
         </div>
 
@@ -62,6 +67,40 @@
             <div class="big">📭</div>
             <p>No members or weeks yet.<br />Start by adding a member or a week above.</p>
         </div>
+
+        <!-- ===== EXPENSE TRACKER ===== -->
+        <div class="expense-section">
+            <div class="expense-header">
+                <h2>💸 Expenses</h2>
+                <button class="primary" id="addExpenseBtn">＋ Add Expense</button>
+            </div>
+
+            <div class="expense-table-wrap">
+                <table id="expenseTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="text-align: left;">Description</th>
+                            <th style="width: 120px;">Amount</th>
+                            <th style="width: 140px;">Date</th>
+                            <th style="width: 80px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseBody">
+                        <!-- dynamically built -->
+                    </tbody>
+                    <tfoot id="expenseFoot">
+                        <!-- dynamically built -->
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Empty state for expenses -->
+            <div id="expenseEmptyState" class="empty-msg" style="display:none;">
+                <div class="big">🧾</div>
+                <p>No expenses yet.<br />Click "Add Expense" to record your first expense.</p>
+            </div>
+        </div>
     </div>
 
     <!-- ─── Modal ─── -->
@@ -73,6 +112,28 @@
             <div class="modal-actions">
                 <button class="cancel" id="modalCancel">Cancel</button>
                 <button class="confirm" id="modalConfirm">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Expense Modal ─── -->
+    <div class="modal-overlay" id="expenseModalOverlay">
+        <div class="modal-box">
+            <h3>Add Expense</h3>
+            <p>Record a new expense for the group.</p>
+
+            <label for="expenseDesc">Description</label>
+            <input type="text" id="expenseDesc" placeholder="e.g. Food, Transport, Rent" />
+
+            <label for="expenseAmount">Amount (₱)</label>
+            <input type="number" id="expenseAmount" placeholder="e.g. 500" min="0" step="0.01" />
+
+            <label for="expenseDate">Date</label>
+            <input type="date" id="expenseDate" />
+
+            <div class="modal-actions">
+                <button class="cancel" id="expenseModalCancel">Cancel</button>
+                <button class="confirm" id="expenseModalConfirm">Add</button>
             </div>
         </div>
     </div>
@@ -91,8 +152,8 @@
         const DEFAULT_DATA = {
             members: ['Alice', 'Bob', 'Carol'],
             weeks: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-            // payments: { memberName: { weekIndex: true/false } }
-            payments: {}
+            payments: {},
+            expenses: []
         };
 
         let data = loadData();
@@ -106,14 +167,14 @@
                 const raw = localStorage.getItem(STORAGE_KEY);
                 if (raw) {
                     const parsed = JSON.parse(raw);
-                    // ensure payments object exists
                     if (!parsed.payments) parsed.payments = {};
+                    if (!parsed.expenses) parsed.expenses = [];
                     return parsed;
                 }
             } catch (_) { /* ignore */ }
-            // seed default payments
             const def = JSON.parse(JSON.stringify(DEFAULT_DATA));
             def.payments = {};
+            def.expenses = [];
             def.members.forEach(m => {
                 def.payments[m] = {};
                 def.weeks.forEach((_, wi) => {
@@ -167,7 +228,7 @@
         function setPaid(member, weekIdx, value) {
             ensurePaymentEntry(member);
             data.payments[member][weekIdx] = !!value;
-            saveData(); // auto-save on change
+            saveData();
             render();
         }
 
@@ -205,9 +266,102 @@
             if (total === 0) return 0;
             return Math.round((getTotalPaidOverall() / total) * 100);
         }
-        function getTotalAmount(){
+
+        function getTotalAmount() {
             const totalAmount = getTotalPaidOverall() * 50;
             return totalAmount;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  EXPENSES
+        // ─────────────────────────────────────────────────────────────
+
+        function getTotalExpenses() {
+            if (!data.expenses) return 0;
+            return data.expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+        }
+
+        function getRemainingBalance() {
+            return getTotalAmount() - getTotalExpenses();
+        }
+
+        function addExpense(description, amount, date) {
+            if (!data.expenses) data.expenses = [];
+            data.expenses.push({
+                id: Date.now(),
+                description: description,
+                amount: parseFloat(amount) || 0,
+                date: date || new Date().toISOString().split('T')[0]
+            });
+            saveData();
+            renderExpenses();
+            updateExpenseStats();
+        }
+
+        function deleteExpense(id) {
+            if (!data.expenses) return;
+            data.expenses = data.expenses.filter(e => e.id !== id);
+            saveData();
+            renderExpenses();
+            updateExpenseStats();
+        }
+
+        function updateExpenseStats() {
+            document.getElementById('totalExpenses').textContent = getTotalExpenses().toLocaleString();
+            document.getElementById('remainingBalance').textContent = getRemainingBalance().toLocaleString();
+        }
+
+        function renderExpenses() {
+            const body = document.getElementById('expenseBody');
+            const foot = document.getElementById('expenseFoot');
+            const empty = document.getElementById('expenseEmptyState');
+            const table = document.getElementById('expenseTable');
+
+            if (!data.expenses || data.expenses.length === 0) {
+                table.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+
+            table.style.display = '';
+            empty.style.display = 'none';
+
+            // Body
+            let tbodyHtml = '';
+            data.expenses.forEach((exp, i) => {
+                tbodyHtml += `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td>${escapeHtml(exp.description)}</td>
+                        <td class="expense-amount">₱${exp.amount.toLocaleString()}</td>
+                        <td class="expense-date">${exp.date || '—'}</td>
+                        <td>
+                            <button class="del-expense" data-id="${exp.id}" title="Delete expense">✕</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            body.innerHTML = tbodyHtml;
+
+            // Footer with total
+            foot.innerHTML = `
+                <tr class="expense-total-row">
+                    <td colspan="2">Total Expenses</td>
+                    <td class="total-expense-amount">₱${getTotalExpenses().toLocaleString()}</td>
+                    <td colspan="2"></td>
+                </tr>
+            `;
+
+            // Attach delete events
+            body.querySelectorAll('.del-expense').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id, 10);
+                    const exp = data.expenses.find(x => x.id === id);
+                    if (exp && confirm(`Delete expense "${exp.description}" (₱${exp.amount})?`)) {
+                        deleteExpense(id);
+                    }
+                });
+            });
         }
 
         // ─────────────────────────────────────────────────────────────
@@ -226,7 +380,9 @@
             document.getElementById('weekCount').textContent = data.weeks.length;
             document.getElementById('totalPaidCount').textContent = getTotalPaidOverall();
             document.getElementById('collectionRate').textContent = getCollectionRate() + '%';
-            document.getElementById('totalAmount').textContent = getTotalAmount();  
+            document.getElementById('totalAmount').textContent = getTotalAmount();
+            updateExpenseStats();
+
             // if empty
             if (data.members.length === 0 || data.weeks.length === 0) {
                 table.style.display = 'none';
@@ -240,13 +396,13 @@
             let theadHtml = '<tr><th>Member</th>';
             data.weeks.forEach((weekLabel, wi) => {
                 theadHtml += `
-                        <th>
-                            <div class="week-label">
-                                <span>${escapeHtml(weekLabel)}</span>
-                                <button class="del-week" data-week="${wi}" title="Delete week">✕</button>
-                            </div>
-                        </th>
-                    `;
+                    <th>
+                        <div class="week-label">
+                            <span>${escapeHtml(weekLabel)}</span>
+                            <button class="del-week" data-week="${wi}" title="Delete week">✕</button>
+                        </div>
+                    </th>
+                `;
             });
             theadHtml += '<th>Total</th></tr>';
             head.innerHTML = theadHtml;
@@ -254,27 +410,27 @@
             // ── Body ──
             let tbodyHtml = '';
             data.members.forEach(member => {
-               tbodyHtml += `<tr><td>
-        <div class="member-cell">
-            <span class="member-name">${escapeHtml(member)}</span>
-            <button class="del-member" data-member="${escapeHtml(member)}" title="Delete member">✕</button>
-        </div>
-    </td>`;
+                tbodyHtml += `<tr><td>
+                    <div class="member-cell">
+                        <span class="member-name">${escapeHtml(member)}</span>
+                        <button class="del-member" data-member="${escapeHtml(member)}" title="Delete member">✕</button>
+                    </div>
+                </td>`;
                 let memberTotal = 0;
                 data.weeks.forEach((_, wi) => {
                     const paid = getPaid(member, wi);
                     if (paid) memberTotal++;
                     const icon = paid ? '✅' : '⬜';
                     tbodyHtml += `
-                            <td>
-                                <div class="pay-cell ${paid ? 'paid' : ''}" 
-                                     data-member="${escapeHtml(member)}" 
-                                     data-week="${wi}"
-                                     title="${paid ? 'Mark as unpaid' : 'Mark as paid'}">
-                                    <span class="icon">${icon}</span>
-                                </div>
-                            </td>
-                        `;
+                        <td>
+                            <div class="pay-cell ${paid ? 'paid' : ''}" 
+                                 data-member="${escapeHtml(member)}" 
+                                 data-week="${wi}"
+                                 title="${paid ? 'Mark as unpaid' : 'Mark as paid'}">
+                                <span class="icon">${icon}</span>
+                            </div>
+                        </td>
+                    `;
                 });
                 tbodyHtml += `<td class="total-col">${memberTotal}</td></tr>`;
             });
@@ -286,33 +442,28 @@
             data.weeks.forEach((_, wi) => {
                 const count = getTotalPaidForWeek(wi);
                 grandTotal += count;
-                const isFull = count === data.members.length;
                 tfootHtml += `
-                        <td>
-                            <div class="pay-cell ${count > 0 ? 'paid-total' : ''}" style="cursor:default;">
-                                ${count} / ${data.members.length}
-                            </div>
-                        </td>
-                    `;
+                    <td>
+                        <div class="pay-cell ${count > 0 ? 'paid-total' : ''}" style="cursor:default;">
+                            ${count} / ${data.members.length}
+                        </div>
+                    </td>
+                `;
             });
             tfootHtml += `<td class="total-col">${grandTotal}</td></tr>`;
             foot.innerHTML = tfootHtml;
 
             // ── Event Listeners (delegated) ──
-
-            // Click on pay-cell: toggle
             body.querySelectorAll('.pay-cell').forEach(cell => {
                 cell.removeEventListener('click', handleCellClick);
                 cell.addEventListener('click', handleCellClick);
             });
 
-            // Delete member
             body.querySelectorAll('.del-member').forEach(btn => {
                 btn.removeEventListener('click', handleDeleteMember);
                 btn.addEventListener('click', handleDeleteMember);
             });
 
-            // Delete week
             head.querySelectorAll('.del-week').forEach(btn => {
                 btn.removeEventListener('click', handleDeleteWeek);
                 btn.addEventListener('click', handleDeleteWeek);
@@ -347,9 +498,7 @@
             if (isNaN(weekIdx)) return;
             const label = data.weeks[weekIdx];
             if (confirm(`Delete "${label}"? All payment data for this week will be lost.`)) {
-                // remove week from array
                 data.weeks.splice(weekIdx, 1);
-                // remove this week index from all members' payments, and shift indices
                 for (const member of data.members) {
                     if (data.payments[member]) {
                         const newPay = {};
@@ -370,7 +519,7 @@
         }
 
         // ─────────────────────────────────────────────────────────────
-        //  MODAL
+        //  MODAL (Member / Week)
         // ─────────────────────────────────────────────────────────────
 
         let modalResolve = null;
@@ -461,16 +610,15 @@
             }
         });
 
-        // ── Save button ──
         document.getElementById('saveBtn').addEventListener('click', () => {
             saveData();
-            // Show toast is already called inside saveData()
         });
 
         document.getElementById('resetBtn').addEventListener('click', () => {
             if (confirm('Reset all data to the default members and weeks? This cannot be undone.')) {
                 const def = JSON.parse(JSON.stringify(DEFAULT_DATA));
                 def.payments = {};
+                def.expenses = [];
                 def.members.forEach(m => {
                     def.payments[m] = {};
                     def.weeks.forEach((_, wi) => {
@@ -480,15 +628,74 @@
                 data = def;
                 saveData();
                 render();
+                renderExpenses();
+                updateExpenseStats();
             }
         });
 
         // ─────────────────────────────────────────────────────────────
-        //  SAVE ON TAB CLOSE (extra safety)
+        //  EXPENSE MODAL
+        // ─────────────────────────────────────────────────────────────
+
+        const expenseOverlay = document.getElementById('expenseModalOverlay');
+        const expenseDesc = document.getElementById('expenseDesc');
+        const expenseAmount = document.getElementById('expenseAmount');
+        const expenseDate = document.getElementById('expenseDate');
+        const expenseModalConfirm = document.getElementById('expenseModalConfirm');
+        const expenseModalCancel = document.getElementById('expenseModalCancel');
+
+        document.getElementById('addExpenseBtn').addEventListener('click', () => {
+            expenseDesc.value = '';
+            expenseAmount.value = '';
+            expenseDate.value = new Date().toISOString().split('T')[0];
+            expenseOverlay.classList.add('open');
+            expenseDesc.focus();
+        });
+
+        function closeExpenseModal() {
+            expenseOverlay.classList.remove('open');
+        }
+
+        expenseModalConfirm.addEventListener('click', () => {
+            const desc = expenseDesc.value.trim();
+            const amt = parseFloat(expenseAmount.value);
+            const date = expenseDate.value;
+
+            if (!desc) {
+                expenseDesc.focus();
+                expenseDesc.style.borderColor = '#b91c1c';
+                setTimeout(() => { expenseDesc.style.borderColor = ''; }, 600);
+                return;
+            }
+            if (isNaN(amt) || amt <= 0) {
+                expenseAmount.focus();
+                expenseAmount.style.borderColor = '#b91c1c';
+                setTimeout(() => { expenseAmount.style.borderColor = ''; }, 600);
+                return;
+            }
+
+            addExpense(desc, amt, date);
+            closeExpenseModal();
+        });
+
+        expenseModalCancel.addEventListener('click', closeExpenseModal);
+        expenseOverlay.addEventListener('click', (e) => {
+            if (e.target === expenseOverlay) closeExpenseModal();
+        });
+        expenseDesc.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') expenseAmount.focus();
+            if (e.key === 'Escape') closeExpenseModal();
+        });
+        expenseAmount.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') expenseModalConfirm.click();
+            if (e.key === 'Escape') closeExpenseModal();
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        //  SAVE ON TAB CLOSE
         // ─────────────────────────────────────────────────────────────
 
         window.addEventListener('beforeunload', () => {
-            // data is already saved on every change, but we save again just in case
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
         });
 
@@ -507,11 +714,14 @@
         // ─────────────────────────────────────────────────────────────
 
         render();
+        renderExpenses();
+        updateExpenseStats();
 
         // if no data at all, seed defaults
         if (data.members.length === 0 && data.weeks.length === 0) {
             const def = JSON.parse(JSON.stringify(DEFAULT_DATA));
             def.payments = {};
+            def.expenses = [];
             def.members.forEach(m => {
                 def.payments[m] = {};
                 def.weeks.forEach((_, wi) => {
@@ -521,9 +731,11 @@
             data = def;
             saveData();
             render();
+            renderExpenses();
+            updateExpenseStats();
         }
 
-        console.log('📋 Payment Tracker ready! (auto-save + manual save button)');
+        console.log('📋 Payment Tracker ready! (with expense tracking)');
     </script>
 
 </body>

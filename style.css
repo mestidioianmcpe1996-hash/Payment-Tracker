@@ -149,6 +149,10 @@ body {
     color: #2e7d32;
 }
 
+.stats-item .num.red {
+    color: #c62828;
+}
+
 /* ── Table Wrapper ── */
 .table-wrap {
     overflow-x: auto;
@@ -212,7 +216,7 @@ th .week-label .del-week:hover {
 th:first-child {
     position: sticky;
     left: 0;
-    z-index: 4; /* above header and body */
+    z-index: 4;
     background-color: #fce8ef;
     border-right: 2px solid #f8d7e0;
     min-width: 160px;
@@ -224,12 +228,11 @@ td:first-child {
     position: sticky;
     left: 0;
     z-index: 2;
-    background-color: #ffffff; /* solid to cover scrolling content */
+    background-color: #ffffff;
     border-right: 2px solid #f8d7e0;
     min-width: 160px;
     text-align: left;
     padding-left: 1.2rem;
-    /* Remove flex from the td itself, use inner div */
     display: table-cell;
     vertical-align: middle;
 }
@@ -253,7 +256,7 @@ td:first-child {
 }
 
 .del-member {
-    flex-shrink: 0; /* prevent shrink */
+    flex-shrink: 0;
     background: none;
     border: none;
     color: #b06a82;
@@ -494,6 +497,168 @@ td:first-child {
     transform: translateX(-50%) translateY(0);
 }
 
+/* ============================================================
+   EXPENSE TRACKER STYLES
+   ============================================================ */
+
+.expense-section {
+    margin-top: 2rem;
+}
+
+.expense-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.expense-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #6b2e4a;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.expense-header .primary {
+    background: #d81b60;
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1.1rem;
+    border-radius: 40px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: 0.15s;
+    box-shadow: 0 4px 12px rgba(216, 27, 96, 0.30);
+}
+
+.expense-header .primary:hover {
+    background: #c2185b;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(216, 27, 96, 0.35);
+}
+
+/* ── Expense Table ── */
+.expense-table-wrap {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: 1px solid #f8d7e0;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(180, 80, 120, 0.06);
+}
+
+#expenseTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    min-width: 500px;
+}
+
+#expenseTable th {
+    background: #fce8ef;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #6b2e4a;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid #fce4ec;
+    position: static;
+}
+
+#expenseTable td {
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid #fce4ec;
+    color: #4a2c3a;
+    text-align: center;
+}
+
+#expenseTable td:nth-child(2) {
+    text-align: left;
+    font-weight: 500;
+}
+
+#expenseTable tbody tr:hover {
+    background: #fefafb;
+}
+
+/* Amount display */
+.expense-amount {
+    font-weight: 700;
+    color: #c62828;
+}
+
+/* Date display */
+.expense-date {
+    color: #8a5a6a;
+    font-size: 0.9rem;
+}
+
+/* Delete button */
+.del-expense {
+    background: none;
+    border: none;
+    color: #b06a82;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    transition: 0.1s;
+}
+
+.del-expense:hover {
+    color: #b71c1c;
+    background: #fce4ec;
+}
+
+/* Total row in footer */
+#expenseFoot .expense-total-row td {
+    background: #fce8ef;
+    font-weight: 700;
+    color: #6b2e4a;
+    border-top: 2px solid #f8d7e0;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.95rem;
+}
+
+#expenseFoot .expense-total-row td:first-child {
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.3px;
+}
+
+#expenseFoot .expense-total-row .total-expense-amount {
+    color: #c62828;
+    font-size: 1.05rem;
+}
+
+/* ── Expense Modal Specifics ── */
+#expenseModalOverlay .modal-box label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #6b2e4a;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 0.35rem;
+    margin-top: 0.6rem;
+}
+
+#expenseModalOverlay .modal-box input {
+    margin-bottom: 0.8rem;
+}
+
+#expenseModalOverlay .modal-box input[type="date"] {
+    color: #4a2c3a;
+}
+
 /* ── Responsive ── */
 @media (max-width: 700px) {
     body {
@@ -549,6 +714,27 @@ td:first-child {
         width: 90%;
         justify-content: center;
     }
+
+    /* Expense responsive */
+    .expense-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .expense-header .primary {
+        justify-content: center;
+        width: 100%;
+    }
+
+    #expenseTable th,
+    #expenseTable td {
+        padding: 0.5rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    #expenseTable td:nth-child(2) {
+        min-width: 120px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -565,6 +751,15 @@ td:first-child {
     th:first-child,
     td:first-child {
         min-width: 100px;
+        font-size: 0.75rem;
+    }
+    .expense-header h2 {
+        font-size: 1.1rem;
+    }
+
+    #expenseTable th,
+    #expenseTable td {
+        padding: 0.45rem 0.35rem;
         font-size: 0.75rem;
     }
 }
