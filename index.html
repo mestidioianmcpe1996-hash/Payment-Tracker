@@ -326,7 +326,7 @@
             table.style.display = '';
             empty.style.display = 'none';
 
-            // Body
+            // ── Body ──
             let tbodyHtml = '';
             data.expenses.forEach((exp, i) => {
                 tbodyHtml += `
@@ -343,16 +343,17 @@
             });
             body.innerHTML = tbodyHtml;
 
-            // Footer with total
+            // ── Footer: shorter label + inline amount inside sticky cell ──
             foot.innerHTML = `
                 <tr class="expense-total-row">
-                    <td colspan="2">Total Expenses</td>
-                    <td class="total-expense-amount">₱${getTotalExpenses().toLocaleString()}</td>
-                    <td colspan="2"></td>
+                    <td colspan="2">
+                        Total: <span class="total-expense-amount">₱${getTotalExpenses().toLocaleString()}</span>
+                    </td>
+                    <td colspan="3"></td>
                 </tr>
             `;
 
-            // Attach delete events
+            // ── Attach delete events ──
             body.querySelectorAll('.del-expense').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const id = parseInt(e.currentTarget.dataset.id, 10);

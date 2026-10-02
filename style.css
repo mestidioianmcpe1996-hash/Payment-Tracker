@@ -634,9 +634,72 @@ td:first-child {
     letter-spacing: 0.3px;
 }
 
-#expenseFoot .expense-total-row .total-expense-amount {
+/* ═══════════════════════════════════════════
+   EXPENSE TABLE — Sticky Columns
+   ═══════════════════════════════════════════ */
+
+/* Column 1: # (sticky) */
+#expenseTable thead th:nth-child(1),
+#expenseTable tbody td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background-color: #fce8ef;
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
+    text-align: center;
+}
+
+#expenseTable tbody td:nth-child(1) {
+    background-color: #ffffff;
+    color: #6b2e4a;
+    font-weight: 600;
+}
+
+/* Column 2: Description (sticky) */
+#expenseTable thead th:nth-child(2),
+#expenseTable tbody td:nth-child(2) {
+    position: sticky;
+    left: 50px; /* width of # column */
+    z-index: 3;
+    background-color: #fce8ef;
+    border-right: 2px solid #f8d7e0;
+    text-align: left;
+    min-width: 140px;
+    box-shadow: 4px 0 8px rgba(180, 80, 120, 0.05);
+}
+
+#expenseTable tbody td:nth-child(2) {
+    background-color: #ffffff;
+}
+
+/* Footer: sticky first cell so total is ALWAYS visible */
+#expenseTable tfoot .expense-total-row td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background-color: #fce8ef;
+    text-align: left;
+    padding-left: 0.9rem;
+    border-right: 2px solid #f8d7e0;
+    box-shadow: 4px 0 8px rgba(180, 80, 120, 0.05);
+}
+
+/* Inline total amount inside the sticky footer cell */
+#expenseTable tfoot .expense-total-row .total-expense-amount {
+    display: inline;
     color: #c62828;
-    font-size: 1.05rem;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-left: 0.4rem;
+}
+
+/* Base .total-expense-amount style (also used inline) */
+.total-expense-amount {
+    color: #c62828;
+    font-weight: 700;
+    font-size: 1rem;
 }
 
 /* ── Expense Modal Specifics ── */
@@ -735,6 +798,23 @@ td:first-child {
     #expenseTable td:nth-child(2) {
         min-width: 120px;
     }
+
+    /* Expense sticky adjustments */
+    #expenseTable thead th:nth-child(1),
+    #expenseTable tbody td:nth-child(1) {
+        width: 40px;
+        min-width: 40px;
+        max-width: 40px;
+    }
+    #expenseTable thead th:nth-child(2),
+    #expenseTable tbody td:nth-child(2) {
+        left: 40px;
+        min-width: 110px;
+        font-size: 0.8rem;
+    }
+    #expenseTable tfoot .expense-total-row td:first-child {
+        padding-left: 0.5rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -761,5 +841,18 @@ td:first-child {
     #expenseTable td {
         padding: 0.45rem 0.35rem;
         font-size: 0.75rem;
+    }
+
+    /* Expense sticky adjustments for small screens */
+    #expenseTable thead th:nth-child(1),
+    #expenseTable tbody td:nth-child(1) {
+        width: 32px;
+        min-width: 32px;
+        max-width: 32px;
+    }
+    #expenseTable thead th:nth-child(2),
+    #expenseTable tbody td:nth-child(2) {
+        left: 32px;
+        min-width: 95px;
     }
 }
